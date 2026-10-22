@@ -1,4 +1,4 @@
-# MeetMind AI — Meeting Intelligence Workspace
+# AI Meeting Intelligence — Meeting Intelligence Workspace
 
 MeetMind AI is an AI-powered meeting analysis application that transforms meeting transcripts into structured, actionable insights. It helps users review discussions, identify key decisions, and organize follow-up tasks without manually going through the entire transcript.
 
@@ -61,7 +61,7 @@ The `.env` file is used for local configuration and must not be committed to ver
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Techie-Akanksha/MeetMind-AI.git
+git clone https://github.com/Techie-Akanksha/AI-Meeting-Intelligence.git
 cd "AI Meeting Intelligence"
 ```
 
