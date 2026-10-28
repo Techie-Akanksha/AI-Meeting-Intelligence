@@ -3,9 +3,11 @@ import streamlit as st
 import json
 import logging
 import html
-
+import os
 from services.llm_service import ask_llm
 from services.transcription_service import transcribe_audio
+from services.video_service import extract_audio_from_video
+# from moviepy import VideoFileClip
 from services.validation import (
     validate_meeting_data,
     clean_text_items
@@ -335,16 +337,20 @@ st.markdown(
 )
 
 with st.container(border=True):
+    def reset_transcript():
+        st.session_state.meeting_transcript = ""
 
     input_method = st.radio(
         "Choose input method",
         [
             "Paste Transcript",
             "Upload Audio",
-            "Upload Video (Coming Soon)"
+            "Upload Video"
         ],
         key="input_method",
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        on_change=reset_transcript
+
     )
 
     st.divider()
@@ -405,13 +411,73 @@ with st.container(border=True):
             )
 
     else:
-        st.info(
-            "Video transcription will be available soon."
+        uploaded_video = st.file_uploader(
+            "Upload meeting video",
+            type=["mp4", "mov", "mkv"],
+            key="video_upload"
         )
+
+        if uploaded_video is not None:
+
+            st.video(uploaded_video)
+
+            if st.button(
+                "Transcribe Video",
+                use_container_width=True
+            ):
+                audio_path = None
+
+                with st.spinner(
+                    "Extracting audio and transcribing video..."
+                ):
+                    try:
+                        audio_path = extract_audio_from_video(
+                            uploaded_video
+                        )
+
+                        text = transcribe_audio(audio_path)
+
+                        if text.strip():
+                            st.session_state.meeting_transcript = text
+                            st.rerun()
+                        else:
+                            st.warning(
+                                "No speech detected in the video."
+                            )
+
+                    except Exception:
+                        logger.exception(
+                            "Video transcription failed."
+                        )
+                        st.error(
+                            "Unable to transcribe this video."
+                        )
+
+                    finally:
+                        if (
+                            audio_path
+                            and os.path.exists(audio_path)
+                        ):
+                            os.remove(audio_path)
+
+        if st.session_state.meeting_transcript.strip():
+            st.markdown("#### Review Video Transcription")
+
+            st.caption(
+                "Review and correct the transcript "
+                "before analyzing the meeting."
+            )
+
+            st.text_area(
+                "Review or edit video transcript",
+                key="meeting_transcript",
+                height=200
+            )
+
 
 transcript = (
     st.session_state.meeting_transcript
-    if input_method != "Upload Video (Coming Soon)"
+    if input_method != "All Program works well"
     else ""
 )
 
@@ -620,28 +686,7 @@ if st.button(
 
                 # Parse JSON response
                 meeting_data = json.loads(result)
-
-                # Validate the main response
-                # if not isinstance(meeting_data, dict):
-                #     raise ValueError(
-                #         "The response must be a JSON object."
-                #     )
-
-                # # Validate list fields
-                # list_fields = [
-                #     "discussion_points",
-                #     "decisions",
-                #     "action_items",
-                #     "additional_insights",
-                #     "open_questions"
-                # ]
                 meeting_data = validate_meeting_data(meeting_data)
-
-                # for field in list_fields:
-                #     if not isinstance(meeting_data.get(field, []), list):
-                #         raise ValueError(
-                #             f"The '{field}' field must be a list."
-                #         )
 
                 logger.info(
                     "Meeting analysis completed successfully."
