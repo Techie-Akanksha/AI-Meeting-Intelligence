@@ -1,145 +1,194 @@
-# 🧠 AI Meeting Intelligence — Meeting Workspace
+# AI Meeting Intelligence — AI-Powered Meeting Intelligence System
 
-MeetMind AI is an AI-powered meeting analysis application that transforms meeting transcripts into structured, actionable insights. It helps users review discussions, identify key decisions, and organize follow-up tasks without manually going through the entire transcript.
+Turn meeting transcripts, audio recordings, and video recordings into structured, actionable meeting reports.
+
+**AI Meeting Intelligence** is a Python and Streamlit application that uses speech-to-text transcription and a large language model (LLM) to extract meeting summaries, discussion points, confirmed decisions, action items, additional insights, and open questions. Users can review the transcript before analysis and export results as TXT or PDF reports.
+
+> **Project status:** Core application works locally. Large-recording processing, broader automated testing, and public deployment are planned improvements.
 
 ## Features
 
-- **Meeting Summary:** Generates a concise summary of the meeting.
-- **Discussion Points:** Extracts the main topics discussed.
-- **Key Decisions:** Identifies decisions and agreements mentioned in the transcript.
-- **Action Item Extraction:** Identifies tasks and their associated owners and deadlines when available.
-- **Input Validation:** Prevents analysis when the transcript is empty.
-- **Structured AI Output:** Uses JSON to organize meeting insights into separate fields.
-- **Error Handling:** Handles invalid JSON responses and unexpected runtime or API errors.
-- **Logging:** Records diagnostic information to help troubleshoot application errors.
-- **Interactive Web Interface:** Built with Streamlit and styled with custom HTML and CSS.
-
-## How It Works
-
-1. **Enter a Transcript:** The user pastes a meeting transcript into the application.
-2. **Preprocess the Text:** The application cleans unnecessary whitespace.
-3. **Construct the Prompt:** A task-specific prompt instructs the language model to extract meeting insights using the transcript as its source.
-4. **Generate Insights:** The application sends the prompt to the Groq API.
-5. **Parse the Response:** Python's JSON module converts the model's JSON response into a Python data structure.
-6. **Validate and Display Results:** The application checks the response structure and displays the summary, discussion points, decisions, and action items.
-7. **Handle Errors:** Exceptions are logged, and user-friendly error messages are displayed when processing fails.
+- **Three input modes:** paste a transcript, upload an audio recording, or upload a video recording.
+- **Speech-to-text:** transcribe supported audio with Groq's Whisper API.
+- **Video transcription:** extract a video's audio track with MoviePy, then transcribe it.
+- **Transcript review:** edit recognized speech before running analysis.
+- **Structured meeting analysis:** generate a summary, discussion points, confirmed decisions, action items, additional insights, and open questions.
+- **Action-item details:** extract task, owner, and deadline where supported by the transcript; use `Not specified` when necessary.
+- **Accuracy-focused prompts:** distinguish confirmed decisions from proposals and preserve uncertainty rather than inventing facts.
+- **Response validation:** parse and validate structured JSON returned by the LLM.
+- **Report downloads:** export meeting results to TXT and formatted PDF (ReportLab).
+- **Input safeguards:** basic file-size validation, error handling, and application logging.
 
 ## Technology Stack
 
-- **Programming Language:** Python
-- **Frontend and UI:** Streamlit, HTML, CSS
-- **LLM API:** Groq API
-- **Language Model:** `openai/gpt-oss-120b`
-- **JSON Processing:** Python `json` module
-- **Logging:** Python `logging` module
-- **Environment Configuration:** `python-dotenv`
-- **Version Control:** Git and GitHub
+| Area | Technology |
+| --- | --- |
+| Language | Python |
+| Web interface | Streamlit |
+| LLM analysis | Groq API (`openai/gpt-oss-120b` in the current project configuration) |
+| Speech-to-text | Groq Whisper (`whisper-large-v3-turbo`) |
+| Video audio extraction | MoviePy |
+| PDF reports | ReportLab |
+| Configuration | python-dotenv |
+| Validation and processing | Python, JSON |
+| Diagnostics | Python `logging` |
+| Version control | Git and GitHub |
+
+## How It Works
+
+```text
+Paste transcript ───────────────────────┐
+                                       │
+Upload audio ──> Whisper transcription ├──> Review / edit transcript
+                                       │                 │
+Upload video ──> Extract audio ────────┘                 │
+                   │                                     │
+                   └──> Whisper transcription ───────────┘
+                                                         │
+                                                         v
+                                                Clean transcript
+                                                         │
+                                                         v
+                                                Groq LLM analysis
+                                                         │
+                                                         v
+                                             Parse and validate JSON
+                                                         │
+                                                         v
+                                             Display structured report
+                                                         │
+                                                         v
+                                                Download TXT / PDF
+```
+
+The analysis is designed to extract only information supported by the supplied transcript. As with any LLM-based system, results should be reviewed for accuracy before use in consequential workflows.
+
+## Report Sections
+
+1. **Meeting Summary** — concise overview of the discussion.
+2. **Discussion Points** — main topics covered.
+3. **Key Decisions** — explicitly confirmed choices or agreements.
+4. **Action Items** — concrete tasks, owners, and deadlines when available.
+5. **Additional Meeting Insights** — relevant risks, blockers, requirements, milestones, dependencies, or other supported insights.
+6. **Open Questions** — unresolved questions identified from the conversation.
 
 ## Project Structure
 
 ```text
 AI Meeting Intelligence/
-├── services/
-│   └── llm_service.py
 ├── app.py
+├── README.md
 ├── requirements.txt
 ├── .gitignore
-├── .env
-└── README.md
+├── .env                    # Local only; do not commit
+├── test_validation.py
+└── services/
+    ├── llm_service.py
+    ├── transcription_service.py
+    ├── video_service.py
+    ├── validation.py
+    ├── file_validation.py
+    └── report_service.py
 ```
 
-The `.env` file is used for local configuration and must not be committed to version control. The `app.log` file is generated at runtime and is excluded through `.gitignore`.
+## Local Setup
 
-## Prerequisites
-
-- Python 3.10 or a compatible version supported by the installed dependencies
-- A Groq API key
-- Git (optional, for cloning the repository)
-
-## Installation and Setup
-
-### 1. Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/Techie-Akanksha/AI-Meeting-Intelligence.git
-cd "AI Meeting Intelligence"
+cd AI-Meeting-Intelligence
 ```
 
-### 2. Create a Virtual Environment
+### 2. Create and activate a virtual environment
 
-Windows PowerShell:
+**Windows PowerShell**
 
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 ```
 
-### 3. Install Dependencies
+**macOS / Linux**
 
 ```bash
-python -m pip install -r requirements.txt
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-### 4. Configure the API Key
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Make sure `requirements.txt` includes the project's current dependencies, including `streamlit`, `groq`, `python-dotenv`, `moviepy`, and `reportlab`. Video processing may require a working FFmpeg installation or MoviePy's compatible FFmpeg setup.
+
+### 4. Configure the Groq API key
 
 Create a `.env` file in the project root:
 
 ```env
-GROQ_API_KEY= your_groq_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
-Replace the placeholder with your own API key. Keep the key private and never commit the `.env` file.
+Never commit `.env` or share your API key publicly. The repository's `.gitignore` should exclude `.env` and other local artifacts.
 
-### 5. Run the Application
+### 5. Run the application
 
 ```bash
 streamlit run app.py
 ```
 
-Streamlit will provide a local URL that you can open in your browser.
+Open the local Streamlit URL shown in the terminal.
 
-## Example Output
+## Usage
 
-After analyzing a meeting transcript, MeetMind AI displays:
+1. Choose **Paste Transcript**, **Upload Audio**, or **Upload Video**.
+2. Provide the meeting content. Audio and video uploads are transcribed before analysis.
+3. Review and correct the transcript if needed.
+4. Select **Analyze Meeting**.
+5. Review the generated meeting sections.
+6. Download the report as **TXT** or **PDF**.
 
-- Meeting Summary
-- Discussion Points
-- Key Decisions
-- Action Items, including task, owner, and deadline where available
+## Validation and Testing
 
-The extracted results depend on the transcript and the language model's response.
+The project includes `test_validation.py` for structured-response validation. Run it according to the test file's implementation, for example:
 
-## Error Handling and Validation
+```bash
+python test_validation.py
+```
 
-The application includes:
+Manual tests performed during development include transcript input, audio transcription, video transcription, action-item extraction, missing owners/deadlines, invalid JSON handling, and TXT/PDF exports. Basic upload-size validation has also been exercised with an oversized file.
 
-- Empty transcript validation before making an API request
-- JSON parsing error handling
-- Response-structure validation
-- General exception handling for unexpected failures
-- Logging to support debugging
-
-The model can occasionally misinterpret information or generate unsupported details. Outputs should be reviewed against the original transcript, especially before relying on extracted decisions or action items.
+**Still to improve:** automated coverage for media failures, larger recordings, report layout edge cases, and session-state behavior.
 
 ## Current Limitations
 
-- The application requires an internet connection and a working Groq API key.
-- The quality of extracted insights depends on the transcript and model response.
-- The application does not guarantee that every generated decision, owner, or deadline is correct.
-- Users should verify important action items against the original meeting transcript.
+- The application currently applies a **25 MB input-file limit** to audio/video uploads.
+- A compressed video can produce a larger extracted audio file; extracted-audio limits and large-recording processing need further work.
+- Audio compression and chunked transcription for long recordings are **not yet implemented**.
+- Speech recognition can mishear names, technical terminology, or speaker labels.
+- LLM-generated insights can contain mistakes despite prompt constraints and JSON validation; review results before relying on them.
+- Public deployment is **not yet confirmed**; the application has been tested locally.
+- Meeting content is sent to an external API for transcription and/or analysis. Do not upload confidential recordings without appropriate authorization and review of the provider's data-handling terms.
 
-## Future Enhancements
+## Planned Improvements
 
-- Upload meeting transcript files.
-- Export meeting summaries and action items.
-- Add transcript history and searchable records.
-- Improve evidence-based validation of decisions and action items.
-- Support additional transcript formats and languages.
+- Efficient audio encoding and chunked transcription for larger recordings.
+- Additional automated tests and stronger session-state handling.
+- Better progress feedback and media-processing error messages.
+- Further PDF formatting and accessibility improvements.
+- Secure public deployment and end-to-end deployment testing.
 
-## Security
+## What I Learned
 
-- Store API credentials in environment variables.
-- Keep `.env` out of Git.
-- Avoid committing logs, virtual environments, and Python cache files.
-- Review AI-generated content before using it for important decisions.
+Building AI Meeting Intelligence provided practical experience with integrating external AI APIs, converting unstructured speech and text into structured data, writing accuracy-focused prompts, validating LLM outputs, managing media files, handling errors, and generating downloadable reports. The project also reinforced modular Python design and incremental testing.
 
+## Repository
+
+[AI Meeting Intelligence on GitHub](https://github.com/Techie-Akanksha/AI-Meeting-Intelligence)
+
+---
+
+**Note:** This is a portfolio and learning project. It is not a substitute for human review of meeting decisions, commitments, or records.
