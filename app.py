@@ -7,6 +7,13 @@ import os
 from services.llm_service import ask_llm
 from services.transcription_service import transcribe_audio
 from services.video_service import extract_audio_from_video
+from services.file_validation import validate_media_file
+
+from services.report_service import (
+    generate_text_report,
+    generate_pdf_report
+)
+
 # from moviepy import VideoFileClip
 from services.validation import (
     validate_meeting_data,
@@ -213,7 +220,7 @@ st.markdown(
         }
     }
 
-        
+
     /* AI Meeting Intelligence input panel */
     .mm-input-heading {
         font-size: 1.25rem;
@@ -303,7 +310,7 @@ st.markdown(
                 <path d="M16 14a4 4 0 0 1-4 4"/>
                 <path d="M5 11a3 3 0 0 0 3 3"/>
                 <path d="M19 11a3 3 0 0 1-3 3"/>
-            </svg>            
+            </svg>
         </div>
         <div>
             <div class="mm-brand-name">AI Meeting Intelligence</div>
@@ -382,6 +389,8 @@ with st.container(border=True):
                 with st.spinner("Transcribing audio..."):
 
                     try:
+                        # Validate upload size before sending it to Groq.
+                        validate_media_file(uploaded_audio)
                         text = transcribe_audio(uploaded_audio)
 
                         if text.strip():
@@ -389,6 +398,9 @@ with st.container(border=True):
                             st.rerun()
                         else:
                             st.warning("No speech detected.")
+
+                    except ValueError as error:
+                        st.error(str(error))
 
                     except Exception:
                         logger.exception("Audio transcription failed.")
@@ -431,6 +443,8 @@ with st.container(border=True):
                     "Extracting audio and transcribing video..."
                 ):
                     try:
+                        # Validate upload size before extracting audio.
+                        validate_media_file(uploaded_video)
                         audio_path = extract_audio_from_video(
                             uploaded_video
                         )
@@ -444,6 +458,9 @@ with st.container(border=True):
                             st.warning(
                                 "No speech detected in the video."
                             )
+
+                    except ValueError as error:
+                        st.error(str(error))
 
                     except Exception:
                         logger.exception(
@@ -555,7 +572,7 @@ STRICT ACCURACY RULES:
 - Do not generate new investigative questions merely because
   a problem or risk was mentioned.
 
-  
+
 ACCURACY AND EVIDENCE RULES:
 
 1. Preserve uncertainty from the transcript.
@@ -590,7 +607,7 @@ ACCURACY AND EVIDENCE RULES:
 7. Do not claim a system is working correctly
    merely because most observed tests passed.
 
-   
+
 DECISION CLASSIFICATION:
 - A decision must represent an explicitly confirmed choice or agreement.
 - Postponing a decision does not count as a confirmed decision.
@@ -899,7 +916,7 @@ if st.button(
 
                 if valid_insights:
                     st.markdown(
-                        f"""                        
+                        f"""
                             <div class="mm-section-heading">
                                 <span class="mm-icon mm-icon-white">
                                     <svg width="22" height="22"
@@ -914,7 +931,7 @@ if st.button(
                                 </span>
                                 Additional Meeting Insights
                             </div>
-                        
+
                         """,
                         unsafe_allow_html=True
                     )
@@ -946,7 +963,7 @@ if st.button(
                 if open_questions:
                     with st.container(border=True):
                         st.markdown(
-                            f"""                       
+                            f"""
                                 <div class="mm-section-heading">
                                         <svg width="22" height="22"
                                             viewBox="0 0 24 24"
@@ -960,13 +977,32 @@ if st.button(
                                             <path d="M12 17h.01"/>
                                         </svg>
                                     Open Questions
-                                </div>                        
+                                </div>
                             """,
                             unsafe_allow_html=True
                         )
                         for question in open_questions:
                             st.markdown(f"- {question}")
 
+                text_report = generate_text_report(meeting_data)
+
+                st.download_button(
+                    label="Download Meeting Report (.txt)",
+                    data=text_report,
+                    file_name="meeting_intelligence_report.txt",
+                    mime="text/plain",
+                    use_container_width=True
+                )
+
+                pdf_report = generate_pdf_report(meeting_data)
+
+                st.download_button(
+                    label="Download Meeting Report (.pdf)",
+                    data=pdf_report,
+                    file_name="meeting_intelligence_report.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
 
             except json.JSONDecodeError:
                 logger.exception(
